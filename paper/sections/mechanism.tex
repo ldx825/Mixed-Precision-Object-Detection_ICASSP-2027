@@ -1,0 +1,74 @@
+% ============================================================
+\section{Detector Precision Utility is Context-Dependent}
+\label{sec:mech}
+% ============================================================
+
+\noindent\textbf{Non-additive interactions.}
+We measured all $\binom{12}{2}=66$ pairwise interactions on a 6-bit base
+(all blocks at 6-bit; $U(\varnothing)$ has score\_drop $0.0298$).
+Table~\ref{tab:interaction} summarizes: the average absolute centered
+interaction is $0.00135$ versus mean $|\Delta(i\mid\varnothing)|=0.00171$,
+a ratio of $0.79$.
+Extremes are instructive: \texttt{BLK2.3}$+$\texttt{BLK2.5} are nearly
+useless alone yet interact by $+0.0060$, while two of the best singletons
+(\texttt{BLK2.0}/\texttt{BLK2.2}) underperform their sum by $-0.0047$.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Pairwise interactions, 6-bit base (calib-64, GT-free).}
+\label{tab:interaction}
+\begin{tabular}{lr}
+\toprule
+statistic & value \\
+\midrule
+mean $I_{ij}$ & $+0.0005$ \\
+std $I_{ij}$ & $0.0017$ \\
+range & $[-0.0047, +0.0060]$ \\
+mean $|I_{ij}|$ & $0.00135$ \\
+mean $|\Delta(i\mid\varnothing)|$ & $0.00171$ \\
+ratio & $0.79$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.98\linewidth]{figures/fig1_reversal.pdf}
+\caption{Singleton-vs-conditional ranking under growing context:
+(a)~pairwise order reversal rate (all pairs vs.\ large-gap pairs,
+$|{\rm gap}|>0.002$); (b)~top-1 mismatch rate.}
+\label{fig:reversal}
+\end{figure}
+
+\noindent\textbf{Rank reversal.}
+If interactions were small or homogeneous, singleton rankings would still
+be usable. They are not: comparing, for every context $S$, the conditional
+ranking $\Delta(i\mid S)$ against the singleton ranking
+$\Delta(i\mid\varnothing)$ over the remaining candidates, $22.6\%$,
+$24.7\%$, $26.4\%$ of pairwise orders reverse at $|S|{=}1,2,3$
+(Fig.~\ref{fig:reversal}; $12/66/220$ contexts, top-1 mismatch
+$25/61/62\%$). Reversals are mostly moderate in size, but the largest
+reversals change decisions: in context
+$S=\{\texttt{BLK2.5},\texttt{BLK3.0}\}$ conditional measurement prefers
+\texttt{BLK2.3} over the singleton-favored \texttt{BLK2.4}, a $+0.0070$
+utility swing ($\approx 4\times$ the mean singleton effect).
+
+\smallskip
+\noindent\textbf{Five-seed replication.}
+Four additional 64-image pools give reversal rates of
+$22.6$--$32.0\%$ (all $\geq 20\%$) and interaction-to-singleton ratios
+of $0.50$--$1.12$ (mean $0.76$); per-pair values are seed-dependent, so
+we report distribution-level statements, which all replicate.
+
+\smallskip
+\noindent\textbf{Decision impact.}
+Utility-level differences translate to decisions. At an equal repair
+budget (4 of 12 blocks at 8-bit, 4-bit base), selecting blocks by
+singleton rankings of the same instrument gives $31.39$ AP---about
+chance-level among repair sets ($31.07$)---while conditional measurement
+gives $34.95$ ($+3.56$), and the oracle repair set gives $35.32$. Exact
+enumeration of all $\binom{12}{4}=495$ sets confirms the ordering
+(top-4: $41/495$ vs.\ $11/495$); predicted and
+measured gains correlate at Spearman $0.72$--$1.00$ (legal signals)
+vs.\ $-0.16$--$0.60$ (feature proxy).

@@ -1,0 +1,67 @@
+% ============================================================
+\section{Related Work}
+\label{sec:related}
+% ============================================================
+
+\noindent\textbf{Post-training quantization and bit allocation.}
+PTQ has matured from uniform rounding \cite{gptq,adaround,repqvit} and
+learned step sizes \cite{jacob2018quant,esser2020lsq}
+to mixed precision, where layers receive different bit-widths under a size or
+bit budget \cite{haq,hawq,bitsplit,dong2020hawqv2,yao2021hawqv3},
+including reconstruction-based \cite{nagel2021brecq,wei2022qdrop}
+and activation-aware LLM objectives \cite{xiao2023smoothquant,lin2024awq}.
+Most mixed-precision methods follow
+the score-then-allocate template, which itself inherits the classical
+sensitivity-pruning lineage \cite{lecun1990obd}: compute
+a per-layer sensitivity---often
+Hessian- or Fisher-based \cite{hawq,lampq}, sometimes
+task-metric- or
+regression-based \cite{regptq}---and then solve a budgeted program (DP,
+ILP, or Lagrangian search) over these independent scores.
+
+\smallskip
+\noindent\textbf{Detector-specific quantization.}
+Detector backbones have evolved from CNN detectors
+\cite{ren2015faster} to transformer detectors
+\cite{carion2020detr,zhu2021deformable} and ViT-style backbones
+\cite{dosovitskiy2021vit}, with dedicated PTQ designs
+\cite{li2022ptq4vit,liu2021qvit,lin2022fqvit}.
+F-LBQ \cite{flbq} allocates transformer-layer bit-widths by minimizing
+backbone-feature alteration (uniform quantization on heads; layer-wise
+feature-space proxy). LampQ \cite{lampq} uses a type-aware Fisher-style
+score with an ILP allocation and reports Mask R-CNN + Swin-T detection
+results at 4-bit weight/activation. Reg-PTQ \cite{regptq} targets the
+regression branch with a global reconstruction loss. These works share
+the singleton-score premise; we instead measure \emph{conditional}
+utility and show the singleton premise is quantitatively unreliable for
+detector allocation decisions.
+
+\smallskip
+\noindent\textbf{Output-distortion objectives.}
+BLOB-Q \cite{blobq} approximates global distortion by a second-order
+expansion and, under a layer-uncorrelatedness assumption, decomposes it
+into additive terms enabling DP allocation; it reports Mask R-CNN +
+Swin-T/S detection at 4/5/6-bit. We test the
+\emph{operational consequence} of additive decomposition: can
+context-free contributions predict which block deserves extra precision
+\emph{after} others changed? Our interaction and rank-reversal
+measurements indicate they cannot (Sections~\ref{sec:mech},
+\ref{sec:exp}), which motivates measuring marginals in context.
+
+\smallskip
+\noindent\textbf{Calibration without labels.}
+Most quantization calibration uses unlabeled data
+\cite{cai2020zeroq,krishnamoorthi2018}; what varies is the
+quantity measured. Feature-space proxies \cite{flbq}, output-level
+quadratic objectives \cite{blobq}, and gradient/Fisher statistics
+\cite{lampq} can all be computed without labels. Ours also needs no
+labels---only FP-teacher detections---but measures \emph{task-output
+agreement in the current context} rather than a singleton proxy, with a
+sample-size analysis (Sec.~\ref{sec:theory}).
+
+\smallskip
+\noindent\textbf{Reimplementation note.} Prior-art comparators are
+labeled reimplementations/stand-ins (feature-MSE for F-LBQ-style,
+additive output sensitivity for BLOB-Q-style, and a Fisher-style score
+for LampQ-style); they share our quantizer, calibration set and budget
+accounting, and are not the official pipelines.

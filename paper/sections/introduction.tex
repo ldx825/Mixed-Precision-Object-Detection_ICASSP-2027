@@ -1,0 +1,57 @@
+% ============================================================
+\section{Introduction}
+\label{sec:intro}
+% ============================================================
+
+Deploying object detectors at the edge requires quantization
+\cite{jacob2018quant,gholami2022survey}, and
+mixed-precision quantization (MPQ)---spending high precision only where
+it matters---promises a better accuracy--cost trade-off than uniform
+bit-widths. The dominant recipe is two-staged: (i) score the
+``sensitivity'' of each parameter group (layer, block, or channel)
+independently, once, at full precision or at a fixed reference state;
+(ii) solve a budgeted allocation problem over these per-group scores
+\cite{hawq,haq,bitsplit,flbq,lampq,blobq,regptq}. A silent assumption
+underlies stage (i): that a group's contribution is an
+\emph{intrinsic, context-free} property.
+
+This paper shows that in object detection this assumption fails, and we
+build an allocation method around its failure.
+
+\smallskip
+\noindent\textbf{(1) The problem: precision utility is context-dependent.}
+  Using a controlled instrument---fake quantization of the 12 transformer
+  blocks of a Swin-T backbone inside Mask R-CNN \cite{maskrcnn,swin}, with
+a fully GT-free utility defined by agreement with the full-precision (FP)
+teacher detector on 64 unlabeled images---we measure precision utility in
+\emph{context}: the marginal value of repairing a block given that other
+blocks are already repaired. Three findings emerge: pairwise interactions
+average $0.79\times$ the size of singleton effects; conditional and
+singleton rankings reverse on $22.6$--$32.0\%$ of within-context pairs
+across five calibration seeds (Fig.~\ref{fig:reversal}); and at an
+identical repair budget, decisions made from singleton rankings lose
+$3.56$ AP with respect to conditional measurement (singleton top-4:
+$41/495$; conditional: $11/495$, by exact enumeration).
+
+\smallskip
+\noindent\textbf{(2) The method: GT-free conditional allocation.}
+We present a \emph{conditional} allocation method: it estimates marginal
+utility in the current allocation context with the same instrument,
+stabilizes noisy 64-image estimates with an $\varepsilon$-tolerant
+split-half criterion over single upgrades and budget-neutral pairwise
+exchanges, and selects among several starting allocations by full-64
+utility. It requires no labels, no retraining, and only
+$\sim\!10^{2}$--$10^{3}$ calibration forwards.
+
+\smallskip
+\noindent\textbf{(3) The results: best-or-tied at every budget, two backbones.}
+At matched parameter-weighted budgets on COCO 5k \cite{coco}, the method
+attains the best-or-tied deployable accuracy at every tested budget
+(e.g., $+1.8$ over the strongest reimplemented prior at $4.5$-bit), with
+the margins holding when the strongest baseline is granted the same
+extended bit-level set. It transfers to a second backbone of a different
+size (Swin-S, $+12.5$ at equal budget), and it comes with analyses that
+explain \emph{why} it works: a sample-complexity account of why $64$
+calibration images suffice, and a reversal-floor law that predicts the
+measured reversal rate and yields a design criterion for when singleton
+scoring is structurally unreliable.

@@ -1,0 +1,197 @@
+% ============================================================
+%  Context-Dependent Precision Utility for Mixed-Precision
+%  Object Detection -- ICASSP 2027 submission draft
+%  Compile: pdflatex main.tex (twice) or latexmk -pdf main.tex
+% ============================================================
+\documentclass{article}
+\usepackage{spconf,amsmath,amssymb,graphicx,booktabs,hyperref}
+\usepackage{algorithm,algorithmic}
+\usepackage{balance}
+\usepackage[T1]{fontenc}
+\hypersetup{hidelinks,hypertexnames=false,
+  pdftitle={Context-Dependent Precision Utility for Mixed-Precision Object Detection},
+  pdfauthor={Dongxu Liu}}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+% Compact author block: drop the blank row after the name row (official
+% fonts/margins unchanged; needed to keep the 4-page content limit).
+\makeatletter
+\def\name#1{\gdef\@name{{\em #1}}}
+\def\@maketitle{\newpage
+ \null
+ \vskip 1em \begin{center}
+ {\large \bf \@title \par} \vskip .75em {\large \lineskip .5em
+\begin{tabular}[t]{c}\@name \\ \@address
+ \end{tabular}\par} \end{center}
+ \par
+ \vskip 1em}
+\makeatother
+
+% Modest float/display spacing tightening (official margins and 10pt body
+% unchanged); needed to keep the 4-page content limit with the full author block.
+\setlength{\textfloatsep}{5pt plus 1pt minus 1pt}
+\setlength{\floatsep}{5pt plus 1pt minus 1pt}
+\setlength{\intextsep}{5pt plus 1pt minus 1pt}
+\setlength{\abovedisplayskip}{5pt plus 1pt minus 1pt}
+\setlength{\belowdisplayskip}{5pt plus 1pt minus 1pt}
+
+\title{Context-Dependent Precision Utility for\\ Mixed-Precision Object Detection}
+
+% ICASSP 2027 is NOT double-blind; keep author block.
+\name{Dongxu Liu$^{1}$\sthanks{Corresponding author.}, Linhao Wang$^{2}$, Chenrui Zhu$^{3}$, Dongyang Liu$^{4}$}
+\address{$^{1}$School of Artificial Intelligence, Jilin University, Changchun, China\\
+$^{2}$College of Computer Science and Technology, Jilin University, Changchun, China\\
+$^{3}$College of Software, Jilin University, Changchun, China\\
+$^{4}$Yingcai Honors College, University of Electronic Science and Technology of China, Chengdu, China\\
+{\footnotesize E-mail: liudx9924@mails.jlu.edu.cn, lhwang2124@mails.jlu.edu.cn, zhucr5525@mails.jlu.edu.cn, 2024310102018@std.uestc.edu.cn}}
+
+\begin{document}
+
+\maketitle
+\vspace{-0.75em}
+
+\begin{abstract}
+Mixed-precision quantization (MPQ) is a key enabler for deploying object
+detectors at the edge: assigning different bit-widths to different layers
+trades accuracy for cost far more efficiently than uniform quantization.
+The dominant recipe scores each layer's precision sensitivity
+independently and allocates bits from these singleton scores. In this
+paper we show, through controlled measurements on Mask R-CNN with a
+Swin-T backbone, that this independence assumption breaks in detectors:
+precision utility is context-dependent, with pairwise interactions at
+$0.79\times$ the scale of singleton effects, $22.6$--$32.0\%$ ranking
+reversals across five calibration seeds, and up to $3.6$ AP of
+decision-level impact at equal budget. We then present a labels-free
+allocation method that measures conditional marginal utility directly on
+64 unlabeled images, stabilizes the search with an $\varepsilon$-tolerant
+split-half criterion, and refines allocations with budget-neutral
+pairwise exchanges; a sample-complexity analysis explains why 64 images
+suffice. At matched parameter-weighted budgets on COCO, the method leads
+at every practical budget (e.g., $+5.2$ AP over uniform-4 at $4.0$-bit
+and $+1.8$ at $4.5$-bit) and transfers to a second backbone (Swin-S,
+$+12.5$ at $4.5$-bit).
+Code is available at \url{https://github.com/ldx825/Mixed-Precision-Object-Detection_ICASSP-2027}.
+\end{abstract}
+
+\begin{keywords}
+mixed-precision quantization, object detection, bit allocation,
+calibration, model compression
+\end{keywords}
+
+\input{sections/introduction}
+\input{sections/related}
+\input{sections/preliminaries}
+\input{sections/mechanism}
+\input{sections/method}
+\input{sections/theory}
+\input{sections/experiments}
+\input{sections/conclusion}
+
+\balance
+\clearpage
+% Official spconf.sty bibliography definition, with the inter-item separation
+% slightly tightened so that all 33 refs fill (and fit) the final page at the
+% body font size (10pt, per the ICASSP requirement of >= 9pt).
+\makeatletter
+\def\thebibliography#1{\section{References}\list
+ {[\arabic{enumi}]}{\settowidth\labelwidth{[#1]}\leftmargin\labelwidth
+ \advance\leftmargin\labelsep
+ \itemsep 3.1pt plus 0.5pt minus 1.2pt
+ \usecounter{enumi}}
+ \def\newblock{\hskip .11em plus .33em minus .07em}
+ \sloppy\clubpenalty4000\widowpenalty4000
+ \sfcode`\.=1000\relax}
+\makeatother
+\bibliographystyle{IEEEbib}
+\bibliography{refs}
+\iffalse  % legacy manual bibliography (superseded by the official BibTeX flow above)
+\begin{thebibliography}{99}
+\bibitem{maskrcnn} K.~He, G.~Gkioxari, P.~Doll\'ar, and R.~Girshick,
+  ``Mask R-CNN,'' in \textit{Proc. ICCV}, 2017.
+\bibitem{swin} Z.~Liu \textit{et al.}, ``Swin Transformer: Hierarchical
+  vision transformer using shifted windows,'' in \textit{Proc. ICCV}, 2021.
+\bibitem{coco} T.-Y.~Lin \textit{et al.}, ``Microsoft COCO: Common objects
+  in context,'' in \textit{Proc. ECCV}, 2014.
+\bibitem{gptq} E.~Frantar \textit{et al.}, ``GPTQ: Accurate post-training
+  quantization for generative pre-trained transformers,''
+  in \textit{Proc. ICLR}, 2023.
+\bibitem{hawq} Z.~Dong \textit{et al.}, ``HAWQ: Hessian aware quantization
+  of neural networks with mixed-precision,'' in \textit{Proc. ICCV}, 2019.
+\bibitem{haq} K.~Wang \textit{et al.}, ``HAQ: Hardware-aware automated
+  quantization with mixed precision,'' in \textit{Proc. CVPR}, 2019.
+\bibitem{bitsplit} P.~Wang \textit{et al.}, ``Bit-split and stitching:
+  Efficient bitwidth search for practical mixed precision neural network,''
+  arXiv:2003.07577, 2020.
+\bibitem{flbq} \textit{[F-LBQ]} ``Feature-preserving layer-wise mixed
+  precision quantization,'' in \textit{Proc. ICASSP}, 2026.
+\bibitem{blobq} \textit{[BLOB-Q]} ``Global optimization of model distortion
+  for layer-wise bit allocation,'' in \textit{Proc. ECCV}, 2026.
+\bibitem{lampq} \textit{[LampQ]} ``Layer-wise mixed precision quantization
+  for vision transformers,'' in \textit{Proc. AAAI}, 2026.
+\bibitem{regptq} S.~Chen \textit{et al.}, ``Reg-PTQ: Regression-specialized
+  post-training quantization for object detection,'' in \textit{Proc.
+  CVPR}, 2024.
+\bibitem{li2022ptq4vit} Y.~Li \textit{et al.}, ``PTQ4ViT: Post-training
+  quantization for vision transformers with twin uniform quantization,'' in
+  \textit{Proc. ECCV}, 2022.
+\bibitem{repqvit} Z.~Li \textit{et al.}, ``RepQ-ViT: Scale reparameterization
+  for post-training quantization of vision transformers,''
+  in \textit{Proc. ICCV}, 2023.
+\bibitem{adaround} M.~Nagel \textit{et al.}, ``Up or down? Adaptive
+  rounding for post-training quantization,'' in \textit{Proc. ICML}, 2020.
+\bibitem{jacob2018quant} B.~Jacob \textit{et al.}, ``Quantization and
+  training of neural networks for efficient integer-arithmetic-only
+  inference,'' in \textit{Proc. CVPR}, 2018.
+\bibitem{esser2020lsq} S.~R. Esser \textit{et al.}, ``Learned step size
+  quantization,'' in \textit{Proc. ICLR}, 2020.
+\bibitem{krishnamoorthi2018} R.~Krishnamoorthi, ``Quantizing deep
+  convolutional networks for efficient inference: A whitepaper,''
+  arXiv:1806.08342, 2018.
+\bibitem{gholami2022survey} A.~Gholami \textit{et al.}, ``A survey of
+  quantization methods for efficient neural network inference,'' in
+  \textit{Low-Power Computer Vision}, Chapman and Hall/CRC, 2022.
+\bibitem{nagel2021brecq} M.~Nagel \textit{et al.}, ``BRECQ: Pushing the
+  limit of post-training quantization by block reconstruction,'' in
+  \textit{Proc. ICLR}, 2021.
+\bibitem{wei2022qdrop} X.~Wei \textit{et al.}, ``QDrop: Randomly dropping
+  quantization for extremely low-bit post-training quantization,'' in
+  \textit{Proc. ICLR}, 2022.
+\bibitem{dong2020hawqv2} Z.~Dong \textit{et al.}, ``HAWQ-V2: Hessian
+  aware trace-weighted quantization of neural networks,'' in \textit{Proc.
+  NeurIPS}, 2020.
+\bibitem{yao2021hawqv3} Z.~Yao \textit{et al.}, ``HAWQ-V3: Dyadic neural
+  network quantization,'' in \textit{Proc. ICML}, 2021.
+\bibitem{liu2021qvit} Z.~Liu \textit{et al.}, ``Post-training quantization
+  for vision transformer,'' in \textit{Proc. NeurIPS}, 2021.
+\bibitem{lin2022fqvit} Y.~Lin \textit{et al.}, ``FQ-ViT: Post-training
+  quantization for fully quantized vision transformer,'' in \textit{Proc.
+  IJCAI}, 2022.
+\bibitem{carion2020detr} N.~Carion \textit{et al.}, ``End-to-end object
+  detection with transformers,'' in \textit{Proc. ECCV}, 2020.
+\bibitem{zhu2021deformable} X.~Zhu \textit{et al.}, ``Deformable DETR:
+  Deformable transformers for end-to-end object detection,'' in
+  \textit{Proc. ICLR}, 2021.
+\bibitem{ren2015faster} S.~Ren \textit{et al.}, ``Faster R-CNN: Towards
+  real-time object detection with region proposal networks,'' in
+  \textit{Proc. NeurIPS}, 2015.
+\bibitem{xiao2023smoothquant} G.~Xiao \textit{et al.}, ``SmoothQuant:
+  Accurate and efficient post-training quantization for large language
+  models,'' in \textit{Proc. ICML}, 2023.
+\bibitem{lin2024awq} J.~Lin \textit{et al.}, ``AWQ: Activation-aware
+  weight quantization for on-device LLM compression and acceleration,'' in
+  \textit{Proc. MLSys}, 2024.
+\bibitem{dosovitskiy2021vit} A.~Dosovitskiy \textit{et al.}, ``An image
+  is worth 16x16 words: Transformers for image recognition at scale,'' in
+  \textit{Proc. ICLR}, 2021.
+\bibitem{lecun1990obd} Y.~LeCun, J.~S. Denker, and S.~A. Solla, ``Optimal
+  brain damage,'' in \textit{Proc. NeurIPS}, 1989.
+\bibitem{cai2020zeroq} Y.~Cai \textit{et al.}, ``ZeroQ: A novel zero shot
+  quantization framework,'' in \textit{Proc. CVPR}, 2020.
+\bibitem{hoe} W.~Hoeffding, ``Probability inequalities for sums of bounded
+  random variables,'' \textit{J. Amer. Statist. Assoc.}, vol.~58, no.~301,
+  1963.
+\end{thebibliography}
+\fi
+
+\end{document}

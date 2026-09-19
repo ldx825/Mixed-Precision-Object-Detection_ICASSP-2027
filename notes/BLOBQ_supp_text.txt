@@ -1,0 +1,436 @@
+BLOB-Q: Boosting Low Bit ViT Quantization via
+Global Optimization on Model Distortion
+—Supplementary Material
+1 Proof of Finding 1 (Second-Order Additivity)
+Recall that∆Wl and ∆Al are the perturbation on layer weights and activations
+respectively by quantization,i.e., ∆Wl “W l´ xWl,∆A l “A l´ pAl. The
+derivation of Finding 1 utilizes a basic assumption as follows:
+Assumption 1.Quantization perturbation Layer-uncorrelatedness[4]:
+The perturbation on weight/activation by individual quantizing on each layer is (1)
+zero-meaned:@1ďiďL,Ep∆W iq“Ep∆A iq“ 0, and (2) uncorrelated across
+layer:@1ďi‰jďL,Ep∆W iqEp∆Wjq“Ep∆A iqEp∆Ajq“Ep∆W iqEp∆Ajq“
+0.
+Proof. According to second-order taylor series expansion when under pertur-
+bations onl-th layer’s weight (first order term can be neglected on pretrained
+models):
+pO«O` 1
+2∆WJ
+l H w
+l ∆Wl, (1)
+The L2 distortion when all the layer weights are perturbated can be written as
+ΓxWpO, pOq“E X
+”
+}O´ pO}2
+F
+ı
+«E X
+»
+–
+˜ lÿ
+i“1
+1
+2p∆WiqJH w
+i ∆Wi
+¸J˜ lÿ
+j“1
+1
+2p∆WjqJH w
+j ∆Wj
+¸fi
+fl
+“E X
+« lÿ
+i,j“1
+ˆ 1
+2p∆WiqJH w
+i ∆Wi
+˙Jˆ 1
+2p∆WjqJH w
+j ∆Wj
+˙ff
+.
+(2)
+The summation inside expectation can be further swap out with the expectation:
+ΓxWpO, pOq«
+lÿ
+i,j“1
+EXr 1
+4∆WiH wJ
+i ∆Wi∆WJ
+j H w
+j ∆Wjs. (3)
+Further utilize uncorrelated assumption in Assumption 1 on the expectation on
+matrices: (replaceE X withEfor visual simplicity)
+ΓxWpO, pOq« 1
+4 Er∆WisH wJ
+i Er∆Wi∆WJ
+j sH w
+j Er∆Wjs. (4)
+Notice that (1)Er∆Wis andEr∆Wjs in the above complies with the zero-mean
+assumption wheni‰j in Assumption 1, (2)Er∆Wi∆WJ
+j s“ 0since assumption
+1 indicates∆Wi and∆Wj are uncorrelated, and (3) the fact that all-zero matrix
+2
+multiplied with any matrix results in zero, we can eliminate such cross terms
+i‰jin the summands, resulting in:
+ΓxWpO, pOq«
+lÿ
+i“1
+E
+˜››››
+1
+2∆WJ
+i H w
+i ∆Wi
+››››
+2¸
+. (5)
+The above derivation also applies to the case of activation quantization,
+resulting:
+Γ pApO, pOq«
+lÿ
+i“1
+E
+˜››››
+1
+2∆AJ
+i H a
+i∆Ai
+››››
+2¸
+. (6)
+Therefore, the original expected L2 distortion under weights and activation
+perturbation is:
+ΓpO, pOq«
+lÿ
+i“1
+ΓxWl
+pO, pOq`
+lÿ
+i“1
+Γ pAl
+pO, pOq
+“
+lÿ
+i“1
+E
+˜››››
+1
+2∆WJ
+i H w
+i ∆Wi
+››››
+2¸
+`
+lÿ
+i“1
+E
+˜››››
+1
+2∆AJ
+i H a
+i∆Ai
+››››
+2¸
+.
+(7)
+1.1 Evidences of Assumption Used
+We now show the empirical observations on real ViT models to further support
+the assumptions used in the above theoretical proof.
+Assumption 1 (1): Zero-mean:Fig. 1 illustrates the distributions of weight
+perturbation ∆W in different layers of different models with different bitwidths.
+Under majority circumstances, the distributions of the element-wise perturbations
+display a symmetric pattern around zero, supporting that zero-mean assumption
+holds universally for ViTs.
+Assumption 1 (2): Interlayer uncorrelatedness:Interlayer uncorrelatedness
+can be evaluated by observing the covariance between∆Wi and ∆Wj. Fig. 2
+illustrates the the full pair-wise combination of all quantizable layers in the model,
+where each entry is a sample of covariance of layerwise weight perturbation of
+two layers averaged on a random batch of images from ImageNet. It displays a
+clear diagonal pattern that the covariances vanish on off-diagonal locations where
+i‰j , which is observed on all 4 ViTs. This supports the interlayer-uncorrelated
+assumption.
+1.2 Evidences of Additivity
+To further support the theoretically discovered Finding 1 (Section 1), we further
+provide direct empirical evidences on ViT models as in Fig. 3 and Fig. 4 at low
+bit width weight/activation quantization from 5 bits down to 2 bits. As one can
+see, at 4 to 5 bits, most of points lie in the diagonal meaning that the additivity
+property holds well. However, when the bit width is less than 4 bits, outlier
+BLOB-Q (Supplementary Material) 3
+Figure 1:Empirical statistics of histogram of weight perturbation∆Wi when quan-
+tizing individual layers. We randomly select 4 layers from each models to display the
+distribution quantization error matrices under various bit-widths. We use the same
+symmetric uniform quantizer with least MSE scaling factors.
+points start to increase. In practice, our approach can quantize the model into
+6 bits to 8 bits without hurting accuracy. There is a noticeable accuracy drop
+when the model is quantized to lower bit width (e.g, 4 bits or less).
+2 Parallel DP-solver Design
+A naive DP-solver can be implemented based on Section 4 which by default
+performs sequentially on CPU, but we can harness the parallel-computing power
+of GPU to further accelerate the theoretical time cost to enable DP-Solver
+for larger models at scale. DP-solver to solve the integer problem which can
+be regarded as finding the minimally achieveable bitwidth (“weight”) for each
+group of to-be-quantized layer weight/activation (“item”). In the first step, since
+from Eq. 10 we can see that the statesS[l,:] only depends on previous layer
+S[l-1,:], and the fact that the final solutions are only related toG, thus we can
+reduce the memory cost of the outer-most loop (Algorithm 1 L13) by allocate
+4
+layer 𝑖 layer 𝑖layer 𝑖layer 𝑖
+layer 𝑗
+Figure 2:Empirical statistics of covariance matrixEp}∆Wi∆Wj}2q when quantizing
+individual layers in pretrained model. Deeper blue color indicates larger value, vice
+versa.
+a smaller2-by-R matrix for S to reduce the memory allocation byL{2times.
+This avoids OOM issue on large models like DeiT-B/384 with higher target rates
+e.g.8-bit. Secondly, in the states updating in DP-solver (Algorithm 1 L13-17),
+the number of states needed to iterate the inner-loop can be actually reduced tořl
+idiBďR as this is the largest reachable accumulated sizes when all visited
+layers (from1-st tol-th) quantized to the maximum bitwidthB. This can reduces
+the complexity for the nested for-loop by virtually half. Also, to avoid OOM for
+large layer sizes, we perform parallel state updating piecewisely for the inner-loop,
+allowing us to adjust the piece length to fully utilize VRAM. Finally, for the
+matrix G, we can offload it to storage layerwisely forG[l,:] since as Eq. 11
+indicates it does not depend onG of other layers, and we can load back to perform
+Algorithm 1 L19-23. However, for large modelse.g.DeiT-B with target bit-rate
+of8-bit, the storage needed for offloadedG can be as large as a long matrix of
+50ˆ 8.6ˆ 107ˆ 8ˆ 8bytes« 256GB, which is unacceptable. We notice that due
+to the discrete behavior of the state transfer, at each layer, a lot of entries inG
+repeat themselves for as long asdl. Therefore we perform run-length-coding to
+encode G before offloading to storage and efficiently decode it back for the final
+steps of the algorithm. Empirically this significantly reduces the encoded size ofG
+to only around20MiB for DeiT-B model. The attached source code contains the
+complete details of the proof-of-concept implementation of the above described
+parallel DP-solver.
+3 Additional Experiment Results
+3.1 Scalability of Lower Quantization Bit-width
+Beyond the 4-bit quantization that most existing methods, we further evaluated
+the quantization results on even lower bit-width (3-bit), and we found more
+significant improvement on 3-bit compared to others, up to 41.15% on ViT-L as
+shown in Tab. 1. As claimed in our paper, one of our main contributions of this
+paper is to boost the performance of ViT quantization on low bit-width. This is
+BLOB-Q (Supplementary Material) 5
+5-bit 4-bit 3-bit 2-bit
+Approx. Model Distortion
+Real Model Distortion
+Approx. Model Distortion Approx. Model DistortionApprox. Model Distortion
+Figure 3:Empirical Evidences of Second-order additivity property on ViT-S. The
+X-axis represents the model distortion when approximating via second-order additivity
+property (Finding 1) when quantizing all layerweights. The Y-axis represents the real
+model distortion by directly measuring the L2 distortion on model output. Data points
+inclines to the diagonal lines very well, showing that the additivity property holds.
+5-bit 4-bit 3-bit 2-bit
+Approx. Model Distortion
+Real Model Distortion
+Approx. Model Distortion Approx. Model DistortionApprox. Model Distortion
+Figure 4:Empirical Evidences of Second-order additivity property on DeiT-B. The
+X-axis represents the model distortion when approximating via second-order additivity
+property (Finding 1) when quantizing all layeractivations. The Y-axis represents the
+real model distortion by directly measuring the L2 distortion on model output. Data
+points inclines to the diagonal lines very well, showing that the additivity property
+holds.
+useful in practice when the model is required to be quantized to very small sizes
+for deployment.
+T able 1:Extended experiments on under 3-bit. Both weights and activations are
+quantized. Values in parentheses report the drop from FP32 accuracy.
+Bit-width NoisyQuant [2] RepQ-ViT [1] BLOB-Q (Ours)
+ViT-B ViT-L ViT-B ViT-L ViT-B ViT-L
+3-bit 0.138(-84.40)1.72(-84.09) 0.27(-84.27)0.85(-84.96) 36.36(-48.18)42.87(-42.94)
+3.2 Scalability to Larger Models (ViT-L)
+We evaluate BLOB-Q on a larger backbone, ViT-L, and compare with APHQ-
+ViT [3]. Tab. 2 reports the results. BLOB-Q outperforms APHQ-ViT on ViT-L
+at every bit-width. The largest gain is`2.94%at 4-bit. BLOB-Q at 8-bit recovers
+6
+the full FP32 accuracy. These results show that BLOB-Q scales to larger ViT
+backbones.
+T able 2:Scalability of BLOB-Q to a larger backbone (ViT-L). We report top-1
+ImageNet accuracy (%) and the drop from FP32 in parentheses.
+Method FP32 4-bit 6-bit 8-bit
+APHQ-ViT [3] 85.81 82.37 (-3.44) 85.62 (-0.19) 85.68 (-0.13)
+BLOB-Q (Ours) 85.8185.31(-0.50)85.66(-0.15)85.81(+0.00)
+3.3 Bit Allocation Statistics
+We some example visualizations of the bit allocations resulted from BLOB-Q
+on ViTs. Fig. 5 and Fig. 6 show the distribution of the avagerged bits allocated
+blockwisely inside each layer under two ViT models, ViT-S and ViT-B, and
+quantized to 4 and 6-bits respectively. We notice some patterns for the allocation
+results. Firstly, aligning with previous observations in many compression works
+that first and last layers are usually sensitive to quantization thus requires
+more bits, we also observe similar phenomenon on ViTs especially for activation
+quantization. Beside that, we also found an interesting pattern that thefc1
+layers in latter transformer blocks requires slightly more bits to quantize their
+activations, which is constantly observed under multiple settings.
+3.4 Empirical Time and Memory Costs
+Fig. 7 shows the time costs of our proposed BLOB-Q compared to the most
+competitive methods to us. BLOB-Q consists of (1)BLOB-Q-Caliba one-time
+calibration on weight/activation quantization which can be used to solve MPQ
+with arbitrary target rates, and (2)BLOB-Q-DPthe DP-solver to get final
+solution for a specific bit-width target (e.g.4/6/8-bit). As the figure shows, our
+method displays minimal optimization times (BLOB-Q-DP) and significantly
+faster than NoisyQuant [2]. Moreover, the total times (BLOB-Q-Total) combining
+two steps together still remain competitive within manageable range. Note that
+in practice, the calibration is only required to perform once and versatile to
+arbitrary target bit rates, therefore the calibration time (BLOB-Q-Calib) does
+not significantly contribute to overall time consumption fore.g.multi-target
+scenario.
+Fig. 8 shows the memory costs of calibrating ViT models on L40 machine.
+As it shows, the VRAM memory required to perform PTQ ranges reasonably
+between around 2GB and 6GB for the evaluated models, making our BLOB-Q
+accessible to more use cases.
+BLOB-Q (Supplementary Material) 7
+block[n].fc1 layers: more bits
+last layer: most bits
+Gradually lower bits
+Figure 5:Bit allocation visualization of BLOB-Q on 4-bit ViT-B. We show the averages
+of bit rates allocated to each block of weight/activation tensor within each layer.
+block[n].fc1 layers: more bits
+last layer: most bits
+Figure 6:Bit allocation visualization of BLOB-Q on 6-bit ViT-B. We show the averages
+of bit rates allocated to each block of weight/activation tensor within each layer.
+4 Quantization with Mixed-Precision on Hardware
+In practice, there are three stages of data movement for Mixed-Precision Quan-
+tization on hardware: global memory stage, buffer stage, and processing stage
+(or compute unit stage). At global memory stage, weights are stored and packed
+based on bit-width to maximize storage efficiency. Then at buffer stage, weights
+will be unpacked and aligned before sending to compute unit. For example, if a)
+memory has a 16-bit word, b) weights are quantized to 4-bit, and c) 8-bit int is
+used in compute logic, then a 16-bit word will be unpacked to 4 weights and each
+weight will be padded to a 8-bit integer with zero-padding. Last, the unpacked
+and padded weights will be sent to compute units. The hardware dynamically
+processes weights with different bit widths based on the memory packing and
+alignment mechanisms.
+Hereisanexamplewhenweightsarequantizedto4-bit,withbitwiseoperations
+involved in the process. Assume the length of a memory word is 16-bit. 4 weights
+are packed into a single word. Let w1 = 0xA (1010 in binary), w2 = 0x4 (0100
+in binary), w3 = 0x5 (0101 in binary), and w4 = 0x7 (0111 in binary) denote 4
+8
+0.00
+5.00
+10.00
+15.00
+4 Bits 6 Bits 8 Bits
+RepQ-ViT EasyQuant NoisyQuant
+BLOB-Q-DP BLOB-Q-Calib BLOB-Q-Total
+0.00
+10.00
+20.00
+30.00
+4 Bits 6 Bits 8 Bits
+RepQ-ViT EasyQuant NoisyQuant
+BLOB-Q-DP BLOB-Q-Calib BLOB-Q-Total
+(a) ViT-S (b) ViT-B
+Figure 7:Time costs (minutes) of different PTQ methods.
+Memory (MB)
+1958
+5374
+6061
+1926
+5332
+6026
+0
+2000
+4000
+6000
+ViT-S ViT-B ViT-B/384 DeiT-S DeiT-B DeiT-B/384
+Figure 8:VRAM Memory consumptions (MB) of BLOB-Q calibration.
+weights. They will be packed into a word:
+packed_word“rw1w2w3w4s“1010 0100 0101 0111ppackedintoa16bitwordq.
+When the packed data is fetched from global memory to buffer, bitwise operations
+are used to extract the individual values from the packed word. For example, to
+extract the 4-bit weight w1, perform a bitwise AND operation with a mask and
+shift the result: mask = 0xF000 (in binary: 1111 0000 0000 0000),
+extract w1 :packed_word&maskąą12.
+If 8-bit int is used in compute logic, each weight will be padded to a 8-bit integer,
+padding:w1“0000 1010, w2“0000 0100, w3“0000 0101, w4“0000 0111.
+The padded weights will be then sent to compute unit.
+We implemented 8-bit and 4-bit matrix multiplication and convolution for
+GPU acceleration based on Nvidia’s CUTLASS template library1 as CUDA
+extensions to python-based main process, and replaced them with Pytorch’s
+default convolution and linear module and tested the speed up on GPUs. Since
+1 https://github.com/NVIDIA/cutlass
+BLOB-Q (Supplementary Material) 9
+Nvidia’s TensorCore is supported on Ampere machines with the lasted versions
+of the CUDA compiler, our implementation leverages the TensorOp GEMMs
+provided by CUTLASS. For INT8 and INT4 convolution, we adopt the implicit
+convolution for signed 8-bit (s8) and signed 4-bit (s4) respectively. For INT4
+operations, since Pytorch does not supports4 data type, we first perform packing
+operations for both inputs and weights (quantized to effective 4-bit but contained
+in torch.int8 data type), which packs two adjacent s4 values into a byte,
+then transfer them from pytorch ins8 type to C++. The packeds8 data are
+further casted intos4 type using reinterpret_cast<cutlass:int4b_t *> . We
+implemented the packing for twos4valuesf 1,f 2 as below:
+packpf1,f 2q“f 1!4`f 2`16¨Ipf 2ă0q. (8)
+This packing process is implemented in parallel to reduce the overhead when
+applied to tensors.
+To efficiently utilize CUDA kernels, CUTLASS adopts 128-bit vector memory
+access. As a result, INT8 convolution and matmul require the input channels to
+be a multiple of 16, and the INT4 ones require a multiple of 32 instead. Therefore,
+we pad the input channels to meet this alignment requirement for INT4 or INT8
+inference. We then utilize the implemented INT4 and INT8 operations to perform
+mixed-precision quantization on Vision Transformers (ViTs). We constrain the
+quantization parameters and bit allocation options to only 4 and 8 bits. We
+evaluate such constrained mixed-precision on DeiT-B when quantied to 6 bits on
+average. Tab. 3 shows the performance of the inference time on DeiT-B and the
+speedup under different batch sizes. The Mixed-Precision Quantization at 6 bits
+on average with the above implementation can bring up to1.6ˆspeedups.
+T able 3:Benchmark performances of Mixed-Precision Quantization at 6 bits on DeiT-B
+inference using INT8 and INT4 GEMM on Nvidia A100.
+Batch Size Time Cost (ms)
+32 64 128 256
+FP32 2.38 2.42 2.40 2.38
+6 Bits 1.45 1.44 1.52 1.54
+Speedup 1.64 1.68 1.58 1.55
+4.1 Discussion on Memory Bandwidth
+To explore the empirical benifit of adopting a mixed-precisioned quantization
+recipe compared to uniform quantization, we conducted further comparison of
+our mixed-precision approach with uniform quantization method, regarding the
+hardware performance. Firstly, we compare the inference latency with the SOTA
+uniform quantization method (RepQ-ViT) on an 80GB-A100 GPU platform,
+with a high memory bandwidth at 2.039 TB/s. Tab. 4 summarizes the inference
+10
+speed resulting from our mixed-precision quantization approach. In Tab. 4, we
+choose the settings of two models for both approaches where accuracy loss is less
+than 0.5%. For all settings, we show the average latency on 8192 test images
+with batchsize of 64. The results show we gain latency speedups from uniform
+quantization up to 19%, without hurting accuracy.
+T able 4:GPU latency (ms) of mixed-precision inference compared to uniform quanti-
+zation.
+Method Latency on DeiT-S Latency on DeiT-B
+FP 65.4 179
+RepQ-ViT (Uniform) 10.5 113
+Ours (MP) 8.78 102
+4.2 Discussion on the effect on Memory Bandwidth
+We also evaluated the hardware performance on two hardware platforms: TPU V3
+and Eyeriss, which are the neural-network-target hardware accelerators targeted
+for edge devices. The memory bandwidths on these platforms are much less
+than A100 GPU, at 12.5GB/s and 1GB/s for TPU and Eyeriss respectively.
+Using the standard SCALE-sim simulator, we simulated the inference speed on
+DeiT-S and DeiT-B, when deployed onto the two hardware platforms. Tab. 5
+summarizes the inference speed resulting from our mixed-precision quantization
+approach, compared with RepQ-ViT. In Tab. 5, we also choose the settings
+of both approaches where accuracy loss is less than 0.5%. As we can see, our
+mixed-precision quantization approach can further reduce the inference time
+noticeably by up to 25%, compared with the uniform quantization approach.
+The improvement comes from the low-bit quantization of our approach. As the
+proposed mixed-precision quantization can quantize models to lower bit widths,
+it thus leads to smaller model size and less memory read/write time.
+T able 5:Hardware performance on Edge devices with different memory bandwidths.
+Method Latency on DeiT-S (ms)Latency on DeiT-B (ms)
+TPU V3 Eyeriss TPU V3 Eyeriss
+FP 10.8 646.4 18.6 1113.2
+RepQ-ViT (Uniform) 9.1 449.7 15.7 774.4
+Ours (MP) 6.8 337.3 12.9 580.8
+BLOB-Q (Supplementary Material) 11
+References
+1. Li, Z., Xiao, J., Yang, L., Gu, Q.: Repq-vit: Scale reparameterization for post-training
+quantization of vision transformers. In: Proceedings of the IEEE/CVF International
+Conference on Computer Vision. pp. 17227–17236 (2023)
+2. Liu, Y., Yang, H., Dong, Z., Keutzer, K., Du, L., Zhang, S.: Noisyquant: Noisy
+bias-enhanced post-training activation quantization for vision transformers. In: Pro-
+ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition.
+pp. 20321–20330 (2023)
+3. Wu, Z., Zhang, J., Chen, J., Guo, J., Huang, D., Wang, Y.: Aphq-vit: Post-training
+quantization with average perturbation hessian based reconstruction for vision trans-
+formers. In: IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(CVPR) (2025)
+4. Zhou, Y., Moosavi-Dezfooli, S.M., Cheung, N.M., Frossard, P.: Adaptive quantization
+for deep neural network. In: Proceedings of the AAAI Conference on Artificial
+Intelligence. vol. 32 (2018)

@@ -1,0 +1,68 @@
+% ============================================================
+\section{Sample-Complexity Analysis}
+\label{sec:theory}
+% ============================================================
+
+The method ranks candidates and accepts moves by comparing
+estimated utilities $\hat\mu_a = n^{-1}\sum_k Z_a(x_k)$, where $Z_a(x)$
+is the bounded per-image utility contribution of move $a$
+($|Z_a|\leq 1$). Two standard consequences link the calibration size
+$n$ to allocation reliability.
+
+\smallskip
+\noindent\textbf{(T1) Correct comparisons.}
+Let there be $M$ candidate moves per round and $R$ rounds
+($M\!\leq\!150$, $R\!\leq\!8$ in our setting). By Hoeffding's inequality
+\cite{hoe} and a union bound, if the comparison margin between the best
+and second-best move is $\Delta\mu$ (in per-image mean units), then
+\begin{equation}
+n \;\geq\; \frac{2}{\Delta\mu^{2}}\,
+\log\!\Big(\frac{2MR}{\delta}\Big),
+\label{eq:t1}
+\end{equation}
+suffices for the measured search trajectory to match the
+exact-utility trajectory with probability $\geq 1-\delta$.
+
+\smallskip
+\noindent\textbf{(T2) $\varepsilon$-optimal acceptance.}
+The acceptance rule Eq.~\eqref{eq:eps} only asks for moves that are
+$\varepsilon$-close to optimal; the standard relaxation gives
+\begin{equation}
+n \;\geq\; \frac{2}{\varepsilon^{2}}\,
+\log\!\Big(\frac{MR}{\delta}\Big),
+\label{eq:t2}
+\end{equation}
+so tolerance and sample size trade off quadratically---the
+methodological reason a small $\varepsilon$ paired with 64 images is a
+principled operating point rather than a heuristic.
+
+\smallskip
+\noindent\textbf{(T3) Interaction-conditioned reversal floor.}
+Two candidates $a,b$ flip order between singleton and context-$S$
+evaluation iff the interaction sum
+$X_S=\sum_{j\in S}(I_{aj}-I_{bj})$ opposes and exceeds the singleton gap
+$D=\Delta_a(\varnothing)-\Delta_b(\varnothing)$. Under symmetric
+independent errors the expected reversal rate is
+\begin{equation}
+R \;=\; \tfrac12\, \mathrm{P}\big(|X_S| > |D|\big).
+\label{eq:t3}
+\end{equation}
+On our measured tables Eq.~\eqref{eq:t3} predicts $R=22.1\%$ at
+$|S|{=}1$; exact enumeration with the measured $U$ values gives
+$22.58\%$, equal to the independent Exp31 measurement. Design criterion: $R<5\%$ needs
+$\rho=\overline{|I|}\,/\,\overline{|\Delta|}$ below $0.134$---detectors
+  measure $0.76$: no calibration budget repairs a singleton design.
+
+\smallskip
+\noindent\textbf{Theory meets measurement.}
+At $n{=}64$ the cross-seed noise ($0.0016$) is $0.75\times$ the mean
+effect ($0.0021$) and shrinks as $1/\sqrt n$; top-1 selection
+stabilizes at $64$--$128$ images, matching the $(1/\Delta\mu^{2})$
+scaling of Eq.~\eqref{eq:t1}.
+
+\smallskip
+\noindent\textbf{Scope.}
+The analysis is at the level of the \emph{proxy utility} actually
+measured (proxy-to-AP is empirical, Spearman $0.72$--$1.00$); the
+guarantee is that noise does not misdirect the local search---not
+global optimality.

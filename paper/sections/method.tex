@@ -1,0 +1,74 @@
+% ============================================================
+\section{Method: GT-Free Conditional Allocation}
+\label{sec:method}
+% ============================================================
+
+The method has four components; Algorithm~\ref{alg:method} summarizes
+the complete pipeline.
+
+\begin{algorithm}[t]
+\caption{GT-free conditional allocation at budget $\bar b$.}
+\label{alg:method}
+\begin{algorithmic}[1]
+\REQUIRE FP teacher; $N$ blocks with precision ladder $\mathcal L$;
+budget $\bar b$; calibration set $\mathcal C$ ($n$ unlabeled images);
+starts $\mathcal S_0$; tolerance $\varepsilon$
+\ENSURE deployed allocation $\mathbf b^{\star}$
+\STATE $\mathrm{Util}(\mathbf b)$: run the test pipeline on $\mathcal C$
+with $\mathbf b$; match teacher--student detections per image and class
+(greedy by score, at fixed matching thresholds); return
+$-\mathrm{score\_drop}$ (Eq.~\eqref{eq:utility})
+\STATE \textbf{Phase 1 (conditional greedy).} $\mathbf b \leftarrow \mathbf b_{\mathrm{base}}$
+\WHILE{a feasible single-level upgrade fits the residual budget}
+\STATE $i^{\star} \leftarrow \arg\max_i\,
+[\mathrm{Util}(\mathbf b{+}\mathbf e_i)-\mathrm{Util}(\mathbf b)]/n_i$
+\COMMENT{$\mathbf e_i$ upgrades block $i$; re-measured in context}
+\STATE $\mathbf b \leftarrow \mathbf b + \mathbf e_{i^{\star}}$;
+\textbf{append} $\mathbf b$ to $\mathcal S_0$
+\ENDWHILE
+\STATE \textbf{Phase 2 ($\varepsilon$-tolerant refinement), per start $\mathbf b_s \in \mathcal S_0$:}
+\REPEAT
+\STATE split $\mathcal C$ into halves $A,B$; for each move $m$ in the
+neighborhood (single-level swaps; budget-neutral pair exchanges, one level
+up and one down) compute per-half score-gap changes $d_A(m),d_B(m)$
+\STATE accept the best $m$ with $d_A{+}d_B>0$ and
+$\min(d_A,d_B)\geq-\varepsilon$ (Eq.~\eqref{eq:eps});
+$\mathbf b_s \leftarrow \mathbf b_s{+}m$
+\UNTIL{no move accepted}
+\STATE \textbf{Phase 3 (selection).} \textbf{return}
+$\mathbf b^{\star} \leftarrow \arg\max_{\mathbf b_s \in \mathcal S_0}
+\mathrm{Util}(\mathbf b_s)$ \COMMENT{full-64 utility; no labels, no 5k}
+\end{algorithmic}
+\end{algorithm}
+
+\smallskip
+\noindent\textbf{Conditional greedy.}
+From the all-4-bit base, repeatedly perform the feasible single-level
+upgrade maximizing gain-per-cost $\Delta(i\mid S)/n_i$
+(Eq.~\eqref{eq:utility}), re-measuring in the new context after each
+commit; stop when no upgrade fits the residual budget. Scores are
+\emph{measured in the actual context in which the block will operate},
+unlike singleton scores computed once at a fixed reference.
+
+\smallskip
+\noindent\textbf{$\varepsilon$-tolerant refinement.}
+64-image measurements are noisy (cross-seed std $0.0016$, comparable to
+typical swap effects, Sec.~\ref{sec:theory}). We split the 64 images into
+two halves and accept a move iff
+\begin{equation}
+d_A + d_B > 0
+\quad\text{and}\quad
+\min(d_A, d_B) \geq -\varepsilon,
+\qquad \varepsilon = 10^{-3},
+\label{eq:eps}
+\end{equation}
+over a neighborhood of single-block $\pm1$ swaps and budget-neutral
+pairwise exchanges $(i{:}+1, j{:}-1)$ at constant $\bar b$; iterate to a
+fixed point.
+
+\smallskip
+\noindent\textbf{Multi-start and cost.}
+We select among several starts (conditional greedy plus strong
+baseline-produced allocations) by full-64 utility---no ground truth and
+no 5k data enter the search. Per budget the pipeline uses
+  $\sim\!10^3$--$10^4$ detector forwards ($\sim$400 greedy, $\sim$600--$900$

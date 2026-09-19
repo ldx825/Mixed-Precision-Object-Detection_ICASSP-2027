@@ -1,0 +1,44 @@
+% ============================================================
+\section{Preliminaries}
+\label{sec:prelim}
+% ============================================================
+
+\noindent\textbf{Model and quantization contract.}
+We use the official Mask R-CNN with Swin-T (mmdetection 3.3.0) and its
+released COCO checkpoint. FP bbox/mask AP is $42.65$/$39.28$ on val2017
+(5k). The allocation units are the 12 Swin-T blocks; each block comprises
+four weight groups $\{$qkv, proj, fc1, fc2$\}$, and every group receives
+symmetric min-max per-tensor weight-only fake quantization at a bit-width
+$b\in\{3,\ldots,8\}$ (the main sweep spans $\{4,\ldots,8\}$; the
+$4.0$-bit regime additionally exploits level $3$, see
+Sec.~\ref{sec:exp}); heads, LayerNorm, embeddings and biases remain FP.
+Blocks differ $60\times$ in size ($0.11$--$7.1$M; Stage-3 dominates). The \emph{budget} of an allocation $\mathbf{b}$ is
+the parameter-weighted average bit
+$\bar{b}(\mathbf{b})=\sum_g n_g b_g / \sum_g n_g$, where $n_g$ is the
+number of weights in group $g$. All methods compare at identical
+$\bar{b}$.
+
+\smallskip
+\noindent\textbf{GT-free utility.}
+Let the FP model be the teacher. For a quantized state with repaired set
+$S$ (blocks in $S$ at 8-bit, others at the base $\bar{b}$ configuration),
+run the standard test pipeline on a fixed unlabeled calibration set (64
+COCO train images by default) and match teacher and student detections
+per image and class (greedy by teacher score, IoU $\geq 0.5$, teacher
+score $\geq 0.3$). Define
+\begin{equation}
+U(S) \;=\; -\,\mathrm{score\_drop}(S)
+\;=\;-\,\overline{\big(s^{\mathrm{FP}} - s^{\mathrm{q}}\big)}_{\text{matched pairs}},
+\label{eq:utility}
+\end{equation}
+the negative mean score gap over matched teacher--student pairs (pooled
+over images; boxes only; no ground truth anywhere). The
+\emph{conditional marginal utility} of repairing block $i$ given context
+$S$ is
+$\Delta(i\mid S) = U(S\cup\{i\}) - U(S)$,
+and the pairwise interaction is
+$I_{ij} = U(\{i,j\}) - U(\{i\}) - U(\{j\}) + U(\varnothing)$
+(centered at the base state; without the $+U(\varnothing)$ term the raw
+interaction is dominated by the offset $|U(\varnothing)|$ and is
+uninformative).
+$U$ is measured, not modeled: no Hessian, no proxy features, no labels.

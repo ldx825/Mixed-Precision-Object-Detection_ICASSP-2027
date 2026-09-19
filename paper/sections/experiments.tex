@@ -1,0 +1,85 @@
+% ============================================================
+\section{Experiments}
+\label{sec:exp}
+% ============================================================
+
+\noindent\textbf{Setup.}
+Full COCO val2017 (5k) bbox AP with pycocotools under the
+Sec.~\ref{sec:prelim} contract. Baselines: \textbf{uniform};
+\textbf{F-LBQ-reimpl} (feature-MSE greedy); \textbf{BLOBQ-reimpl}
+(output-damage curves); \textbf{LampQ-style} (Fisher-style);
+\textbf{static-OUT}; \textbf{oracle-approx} (reference).
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3.5pt}
+\caption{COCO 5k bbox AP at matched parameter-weighted budgets ($\bar b$);
+bold = best deployable per budget. FP $=42.65$. F-LBQ/BLOBQ/LampQ are
+  reimplementations; s-OUT $=$ static-OUT. ``Ours'' uses the extended level
+  set (level $3$); under the same extended contract the strongest baseline
+  also reaches $22.65$ at $4.0$-bit and $35.72$ at $4.5$-bit (cf.\ fairness
+  notes).}
+\label{tab:main}
+\begin{tabular}{lcccccc}
+\toprule
+$\bar b$ & unif. & F-LBQ & BLOBQ & LampQ & s-OUT & \textbf{Ours} \\
+\midrule
+4.0 & 17.41 & 17.41 & 17.41 & 17.41 & 17.41 & \textbf{22.65} \\
+4.5 & 17.41 & 35.03 & 34.74 & 32.83 & 33.84 & \textbf{36.80} \\
+5.0 & 39.57 & 37.93 & 39.87 & 39.57 & 39.57 & \textbf{39.91} \\
+5.5 & 39.57 & 40.28 & 40.92 & 40.94 & 41.18 & \textbf{41.62} \\
+6.0 & 41.96 & 41.84 & 41.94 & 41.96 & 41.96 & \textbf{42.01} \\
+\bottomrule
+\end{tabular}
+% Final numbers; Ours = pipeline output (conditional greedy + accepted
+% refinements; the multi-start set includes baseline-produced allocations,
+% and the deployed configuration is selected by 64-image utility alone).
+\end{table}
+
+\noindent\textbf{Main results.}
+Our method attains the best-or-tied deployable AP at every tested
+budget: $+5.24$ over uniform-4 at $4.0$-bit (extended level set;
+ties the strongest fair-contract baseline at $22.65$), $+1.77$ at $4.5$,
+$+0.04$ at $5.0$, $+0.44$ at $5.5$,
+and $+0.05$ at $6.0$ (a completion step spends the leftover $0.05$ bit).
+The cross-strategy spread is $3.9$ AP at $4.5$-bit ($32.83$--$36.80$),
+collapsing to $0.12$ AP at $6.0$-bit.
+
+\smallskip
+\noindent\textbf{What wins.}
+Winning allocations pile precision on \emph{shallow, cheap} blocks
+(stages 0--1, 0.1--0.4M weights; up to 8-bit) while the dominating
+stage-3 blocks receive \emph{differentiated} precision: at $4.5$-bit one
+parameter-neutral Stage-3 swap ($4\!\to\!3$ next to $4\!\to\!5$) is worth
+$+1.21$ AP. Reallocation---not singleton ranking---separates the methods:
+uniform-4 scores $17.41$ AP, while the same budget reallocated reaches
+$36.80$.
+
+\smallskip
+\noindent\textbf{Ablation: search design.}
+At $4.5$-bit: strict split-half validation rejects true improvements
+(full-chain: $33.84$, $-1.75$); the $\varepsilon$-tolerant criterion plus
+pair exchanges (incl.\ level-3 moves) reaches $36.80$.
+
+\smallskip
+\noindent\textbf{Second backbone.}
+On Mask R-CNN + Swin-S ($24$ blocks, same contract; FP $=48.18$), the
+same procedure reaches $44.74$ AP at the $4.5$-bit budget versus $32.22$
+for uniform-4---not Swin-T specific.
+
+\smallskip
+\noindent\textbf{Calibration-size behavior.}
+Five 64-image pools give cross-seed top-1 agreement of
+$80\%$/$100\%$ at $n{=}64$/$n\!\geq\!128$ (Eq.~\eqref{eq:t1}).
+
+\smallskip
+\noindent\textbf{Fairness notes.} All comparators share our quantizer
+(weight-only) and budget; prior published numbers use weights and
+activations together and are therefore not directly comparable to ours
+(bridging the two is follow-up work).
+Under the fair extended contract (level $3$ granted to all), our deployed
+outputs lead at $4.5$--$6.0$ ($+1.08$, $+0.04$, $+0.44$, $+0.05$) and tie
+the strongest baseline at $4.0$ ($22.65$); the feature-MSE baseline
+collapses to $25.48$ at $4.5$, exposing the $3$-bit blind spot of
+singleton signals.
