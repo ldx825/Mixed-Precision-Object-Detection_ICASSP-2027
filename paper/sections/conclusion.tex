@@ -1,12 +1,17 @@
 % ============================================================
+\enlargethispage{5\baselineskip}
 \section{Conclusion}
 \label{sec:concl}
 % ============================================================
 
-On a Mask R-CNN + Swin-T detector, precision utility is \emph{context
-dependent}: interactions match singleton effects in scale ($0.79\times$),
-rankings reverse at $22.6$--$32.0\%$ of within-context pairs, and these
-errors cost measurable AP ($-3.56$). A GT-free conditional-allocation
-method leads at every tested budget and transfers to Swin-S.
-Limitations: weight-only, single family, proxy theory; future work:
-weight-and-activation alignment and broader detector families.
+\looseness=-1
+Singleton scoring assumes each layer's precision sensitivity is
+fixed. On a Mask R-CNN + Swin-T detector it breaks:
+precision utility is context-dependent---pairwise interactions match
+singleton effects ($0.79\times$), $22.6$--$32.0\%$ of within-context
+rankings reverse, and the errors cost measurable AP ($-3.56$). We
+address the failure with a GT-free method that measures conditional
+marginal utility on unlabeled images, using an $\varepsilon$-tolerant
+split-half search and budget-neutral exchanges; it leads at every
+tested budget and transfers to Swin-S. Limitations: weight-only, single family, proxy theory; future
+work: weight-and-activation alignment and broader detector families.
