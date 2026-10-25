@@ -13,9 +13,9 @@ This repository contains the code that implements the method and produces every 
 
 ### 1.1 What the paper shows and does
 
-**Measurement (Sec. 3).** The dominant mixed-precision recipe scores each layer independently and allocates bits from those singleton scores. On Mask R-CNN + Swin-T, this code measures the detector's *precision utility* in context and shows the independence assumption breaks: pairwise interactions are `0.79×` the scale of singleton effects, `22.6–32.0%` of block rankings reverse across five calibration seeds, and the decision-level cost at an equal budget reaches `3.6` AP.
+**Measurement (Sec. 4).** The dominant mixed-precision recipe scores each layer independently and allocates bits from those singleton scores. On Mask R-CNN + Swin-T, this code measures the detector's *precision utility* in context and shows the independence assumption breaks: pairwise interactions are `0.79×` the scale of singleton effects, `22.6–32.0%` of block rankings reverse across five calibration seeds, and the decision-level cost at an equal budget reaches `3.6` AP.
 
-**Method (Sec. 4, Algorithm 1).** A labels-free allocation procedure that needs only `n = 64` unlabeled images:
+**Method (Sec. 5, Algorithm 1).** A labels-free allocation procedure that needs only `n = 64` unlabeled images:
 
 1. **Utility** — `Util(b)` runs the test pipeline on the calibration images and matches teacher/student detections per image and class (greedy by score at fixed thresholds), returning `−score_drop` versus the FP teacher.
 2. **Phase 1 — conditional greedy** — repeatedly apply the single-level block upgrade that maximises `[Util(b+e_i) − Util(b)] / n_i`, i.e. marginal utility *re-measured in context*, not a singleton score.
@@ -53,19 +53,19 @@ This repository contains the code that implements the method and produces every 
 
 | Paper | Code |
 |---|---|
-| Sec. 3, Table 1 / Fig. 2 — pairwise interaction at `0.79×` singleton scale | `src/diagnostics/exp30_pair_interaction.py`, `exp30b_full_subsets.py` |
-| Sec. 3 / Fig. 3 — singleton-vs-conditional ranking under growing context (`22.6–32.0%` reversals over 5 seeds) | `exp31_context_rank_reversal.py`, `exp35_seed_pair_validation.py`, `exp35_analyze_only.py` |
-| Sec. 3 — decision-level impact (`3.6` AP at equal budget) | `exp33_decision_k4.py`, `headroom_choice.py` |
-| Sec. 4, Algorithm 1, step `Util(b)` | `src/quant/fake_quant.py` + `src/diagnostics/confirm_5k.py::run_calib_dets` |
-| Sec. 4, Algorithm 1, Phase 1 (conditional greedy) | `src/gate_b/exp40_conditional.py` (and `exp40b`, `exp56` for fixed targets) |
-| Sec. 4, Algorithm 1, Phase 2 (ε-tolerant split-half, Eq. `eps`) | `exp55_v3_combined.py`; strict variants `exp52_split_half.py`, `exp53_sh_greedy.py`; pair moves `exp54_pair_swap.py` |
-| Sec. 4, Algorithm 1, Phase 3 (multi-start selection) | `exp50_power_refine.py`, `exp51_final_sprint.py` |
-| Sec. 4 — baselines (`uniform`, F-LBQ/BLOB-Q/LampQ re-implementations, oracle-approx) | `allocate_static.py`, `measure_signals.py`, `exp41_oracle_approx.py`, `exp64`/`exp65` (fair `{3..8}` level set) |
-| Sec. 5, (T1)/(T2) — Hoeffding sample-complexity bounds, why 64 images suffice | `exp34_seed_curve.py` (calibration-size/seed curves), `exp35_analyze_only.py` |
-| Sec. 5, (T3) — interaction-conditioned reversal floor | `src/gate_b/exp58_t3_reversal_model.py` |
-| Sec. 6, Table 2 — COCO 5k AP at matched parameter-weighted budgets | `eval_allocations.py`, `run_eval5k.sh`, `collect_final_results.py` |
-| Sec. 6 — Swin-S transfer (`+12.5` AP at 4.5-bit) | `exp60_swins_baseline.py`, `exp61_swins_sweep.py`, `exp63_swins_refine.py` |
-| Sec. 6 — low-budget (3-bit) level-set study | `exp57`, `exp59`, `exp62`, `exp66` |
+| Sec. 4, Table 1 — pairwise interaction at `0.79×` singleton scale | `src/diagnostics/exp30_pair_interaction.py`, `exp30b_full_subsets.py` |
+| Sec. 4, Fig. 1 — singleton-vs-conditional ranking under growing context (`22.6–32.0%` reversals over 5 seeds) | `exp31_context_rank_reversal.py`, `exp35_seed_pair_validation.py`, `exp35_analyze_only.py` |
+| Sec. 4 — decision-level impact (`3.6` AP at equal budget) | `exp33_decision_k4.py`, `headroom_choice.py` |
+| Sec. 5, Algorithm 1, step `Util(b)` | `src/quant/fake_quant.py` + `src/diagnostics/confirm_5k.py::run_calib_dets` |
+| Sec. 5, Algorithm 1, Phase 1 (conditional greedy) | `src/gate_b/exp40_conditional.py` (and `exp40b`, `exp56` for fixed targets) |
+| Sec. 5, Algorithm 1, Phase 2 (ε-tolerant split-half, Eq. `eps`) | `exp55_v3_combined.py`; strict variants `exp52_split_half.py`, `exp53_sh_greedy.py`; pair moves `exp54_pair_swap.py` |
+| Sec. 5, Algorithm 1, Phase 3 (multi-start selection) | `exp50_power_refine.py`, `exp51_final_sprint.py` |
+| Sec. 5 — baselines (`uniform`, F-LBQ/BLOB-Q/LampQ re-implementations, oracle-approx) | `allocate_static.py`, `measure_signals.py`, `exp41_oracle_approx.py`, `exp64`/`exp65` (fair `{3..8}` level set) |
+| Sec. 6, (T1)/(T2) — Hoeffding sample-complexity bounds, why 64 images suffice | `exp34_seed_curve.py` (calibration-size/seed curves), `exp35_analyze_only.py` |
+| Sec. 6, (T3) — interaction-conditioned reversal floor | `src/gate_b/exp58_t3_reversal_model.py` |
+| Sec. 7, Table 2 — COCO 5k AP at matched parameter-weighted budgets | `eval_allocations.py`, `run_eval5k.sh`, `collect_final_results.py` |
+| Sec. 7 — Swin-S transfer (`+12.5` AP at 4.5-bit) | `exp60_swins_baseline.py`, `exp61_swins_sweep.py`, `exp63_swins_refine.py` |
+| Sec. 7 — low-budget (3-bit) level-set study | `exp57`, `exp59`, `exp62`, `exp66` |
 
 ### 1.4 Repository layout
 
