@@ -16,3 +16,28 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# ---------------------------------------------------------------------------
+# Not part of the public code release (kept locally, never committed).
+# Only the compiled paper PDF is tracked under paper/.
+# ---------------------------------------------------------------------------
+/paper/*
+!/paper/main.pdf
+
+# Research notes, result figures/tables and experiment artefacts
+/notes/
+/figures/
+/tables/
+/outputs/
+/logs/
+/STATUS.md
+/DECISIONS.md
+/assets/ASSET_MANIFEST.md
+
+# Datasets and checkpoints (downloaded, not distributed)
+/data/calib_seeds/
+/data/coco/
+/data/val2017/
+/data/annotations/
+/checkpoints/
+/.venv/
